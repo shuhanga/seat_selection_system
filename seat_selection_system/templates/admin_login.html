@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>管理员登录</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <h1>管理员登录</h1>
+    {% if error %}
+        <p style="color: red;">{{ error }}</p>
+    {% endif %}
+    <form method="POST">
+        <label for="username">账号:</label>
+        <input type="text" id="username" name="username" required>
+        <label for="password">密码:</label>
+        <input type="password" id="password" name="password" required>
+        <button type="submit">登录</button>
+    </form>
+</body>
+</html>

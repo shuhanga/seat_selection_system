@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>设置选座时间</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+    <h1>设置选座开始时间</h1>
+    <form id="set_time_form">
+        <label for="start_time">开始时间 (格式: YYYY-MM-DD HH:MM:SS):</label>
+        <input type="text" id="start_time" name="start_time" required>
+        <button type="submit">设置</button>
+    </form>
+    <script>
+        $(document).ready(function() {
+            $('#set_time_form').on('submit', function(e) {
+                e.preventDefault();
+                const start_time = $('#start_time').val();
+                $.ajax({
+                    url: '/set_start_time',
+                    method: 'POST',
+                    data: { start_time: start_time },
+                    success: function(response) {
+                        if (response.error) {
+                            alert(response.error);
+                        } else {
+                            alert('时间设置成功！');
+                            window.location.href = '/';  // 返回主页
+                        }
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

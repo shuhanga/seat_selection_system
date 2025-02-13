@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>选座系统</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        h1 {
+            text-align: center;
+        }
+        img {
+            display: block;
+            margin: 0 auto;
+        }
+        #info {
+            margin: 20px 0;
+        }
+        form {
+            margin: 20px 0;
+        }
+        label {
+            display: block;
+            margin: 10px 0 5px;
+        }
+        input, select, button {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #history {
+            margin-top: 20px;
+        }
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        li {
+            padding: 5px 0;
+        }
+        .seat-taken {
+            color: red;
+        }
+        .seat-available {
+            color: green;
+        }
+    </style>
+</head>
+<body>
+    <h1>选座系统</h1>
+    <img src="{{ url_for('static', filename='screen.png') }}" alt="座位图">
+    <div id="info">
+        <p>开始选座时间: <span id="start_time">{{ start_time.strftime('%Y-%m-%d %H:%M:%S') if start_time else '未设置' }}</span></p>
+        <p>当前选座人: <span id="current_user">{{ current_user.name if current_user else '无' }}</span></p>
+        <p>状态: <span id="current_status">{{ current_user.status if current_user else '无' }}</span></p>
+        <p>剩余时间: <span id="countdown">60</span> 秒</p>
+    </div>
+    <form id="selection_form">
+        <label for="name">姓名:</label>
+        <input type="text" id="name" name="name" required>
+        <label for="student_id">智学网学号:</label>
+        <input type="text" id="student_id" name="student_id" required>
+        <label for="password">密码:</label>
+        <input type="password" id="password" name="password" required>
+        <label for="seat">选座位置:</label>
+        <select id="seat" name="seat" required>
+            <option value="">请选择</option>
+            {% for seat, name in seats.items() %}
+                <option value="{{ seat }}" {% if name %}disabled{% endif %}>{{ seat }}: {% if name %}已被{{ name }}选择{% else %}空闲{% endif %}</option>
+            {% endfor %}
+        </select>
+        <button type="submit">确认</button>
+    </form>
+    <div id="history">
+        <h2>历史信息查询</h2>
+        <ul id="seat_list">
+            {% for seat, name in seats.items() if name %}
+                <li class="seat-taken">{{ seat }}: {{ name }}</li>
+            {% endfor %}
+            {% for seat, name in seats.items() if not name %}
+                <li class="seat-available">{{ seat }}: 空闲</li>
+            {% endfor %}
+        </ul>
+    </div>
+    <script>
+        $(document).ready(function() {
+            // 连接 WebSocket
+            const socket = io();
+
+            // 监听服务器广播的更新事件
+            socket.on('update', function(data) {
+                // 更新当前选座人
+                $('#current_user').text(data.current_user || '无');
+                // 更新状态
+                $('#current_status').text(data.current_user ? '进行中' : '无');
+                // 更新剩余时间
+                $('#countdown').text(data.remaining_time);
+                // 更新座位状态
+                $('#seat_list').empty();
+                for (const [seat, name] of Object.entries(data.seats)) {
+                    if (name) {
+                        $('#seat_list').append(`<li class="seat-taken">${seat}: ${name}</li>`);
+                    } else {
+                        $('#seat_list').append(`<li class="seat-available">${seat}: 空闲</li>`);
+                    }
+                }
+            });
+
+            // 提交选座表单
+            $('#selection_form').on('submit', function(e) {
+                e.preventDefault();
+                $.ajax({
+                    url: '/select_seat',
+                    method: 'POST',
+                    data: $(this).serialize(),
+                    success: function(response) {
+                        if (response.error) {
+                            alert(response.error);  // 显示错误提示
+                        }
+                    }
+                });
+            });
+
+            // 启动后台计时线程
+            socket.emit('start_timer');
+        });
+    </script>
+</body>
+</html>
